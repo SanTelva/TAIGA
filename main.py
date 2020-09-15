@@ -6,7 +6,7 @@ mpl.use('Agg')
 from copy import deepcopy
 import gc
 #from matplotlib.patches import RegularPolygon #drawing hexagons
-from Event import Event
+from Event import Event, delta
 
 Nrun = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
@@ -94,7 +94,7 @@ def outs(Nrun, peds = peds):
         event = Event(int(Nevent), eventTime, clusters).recount(cluster_factors, cluster_coords)      
         events.append(event)
         z = event.clean()
-        if len(z) > 4:
+        if len(z) > 3:
             events_cleaned.append(z)
         #print(clusters)
     fin.close()
