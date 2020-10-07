@@ -1,7 +1,7 @@
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
-#mpl.use('Agg')
+mpl.use('Agg')
 #mpl.rc()
 from copy import deepcopy
 import gc
@@ -11,11 +11,8 @@ from Event import Event, delta
 Nrun = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
 
-def dist(c1, c2):
-            return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
-
 def Peds(Nrun):
-    pathped = "./231119.00/peds.mediana/231119.ped_"
+    pathped = "./231119.01/peds/231119.ped_"
     peds = [[0 for i in range(64)] for j in range(24)] #здесь хранятся данные по пьедесталам 
                            #каждого канала по данному рану
     pedsfile = open(pathped+Nrun, "r")
@@ -29,8 +26,10 @@ def Peds(Nrun):
     return peds
 peds = Peds(Nrun)
 
+c = [(17, [[4, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 1], [149, 0], [26, 0], [0, 0], [2, 0], [0, 0], [0, 0], [3, 0], [4, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [182, 1], [20, 0], [79, 0], [17, 0], [82, 1], [6, 0], [3, 0], [1, 0], [11, 0], [0, 0], [19, 0], [0, 0], [0, 0], [0, 0], [25, 0], [4, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [150, 0], [12, 0], [50, 0], [0, 0], [0, 0], [0, 0], [2, 0], [0, 0], [130, 0], [13, 0], [19, 0], [2, 0], [0, 0], [0, 0], [4, 0], [0, 0], [0, 0], [0, 0]])]
+a = Event(clusters = c)
 
-factor = open("./231119.00/factors_051019.07fixed.txt", "r")
+factor = open("./231119.01/factors_051019.07fixed.txt", "r")
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
 line = factor.readline()
 for i in range(9):
@@ -47,7 +46,7 @@ factor.close()
 
 #попытаемся пересчитать в систему координат
 xycoord = "xy_turn_2019j.txt"
-coord = open("./231119.00/"+xycoord, "r")
+coord = open("./231119.01/"+xycoord, "r")
 pixel_coords = dict() #сопоставление ID ФЭУ и его координат
 cluster_coords = [[[None, None, None] for i in range(64)] for j in range(24)]
 while True:  
@@ -61,20 +60,9 @@ while True:
     pixel_coords[int(line[2])] = (int(line[0]), float(line[3]), float(line[4]))
 #print(len(coord.readlines()))
 coord.close()
-neighbours = [[] for i in range(640)]
-defined = [(None, None) for i in range(640)]
-for cluster in cluster_coords:
-    for x, y, i in cluster:
-        if i is not None:
-            defined[i] = (x, y)
-for i in range(640):
-    for j in range(640):
-        if not (None in defined[i] or None in defined[j]):
-            if dist(defined[i], defined[j]) < 3.1:
-                neighbours[i].append(j)
-                
+
 def outs(Nrun, peds = peds):
-    pathout = "./231119.00/outs/231119.out_"
+    pathout = "./231119.01/outs/231119.out_"
 
     fin=open(pathout+Nrun, "r")
     events = []
@@ -103,27 +91,25 @@ def outs(Nrun, peds = peds):
             #for Nchannel in range(64):
                 #if (not Nchannel%2) and (cluster[Nchannel][1]):
                     #print(Nchannel // 2, cluster[Nchannel][0])
-        event = Event(int(Nevent), eventTime, clusters)
-        event.recount(cluster_factors, cluster_coords)      
+        event = Event(int(Nevent), eventTime, clusters).recount(cluster_factors, cluster_coords)      
         events.append(event)
-        z = event.cclean(neighbours)
-        if len(z) >= 4:
+        z = event.clean()
+        if len(z) > 3:
             events_cleaned.append(z)
         #print(clusters)
     fin.close()
-    return events_cleaned, events
+    return events_cleaned
 
 events_cleaned = []
-events = []
-fout = open("Params00.csv", "w")
+fout = open("Params.csv", "w")
 foutEvents = open("events.txt", "w")
-print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", "Azwidth", sep = "\t", file = fout)
-for nrun in range(1, 2):
+print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", sep = "\t", file = fout)
+for nrun in range(1, 139):
     #events_cleaned += outs('{:03}'.format(nrun), peds = Peds(nrun))
     Nrun = '{:03}'.format(nrun)
     print(Nrun)
     peds = Peds(Nrun)
-    o, n = outs(Nrun, peds)
+    o = outs(Nrun, peds)
     for e in o:
         print(
         nrun, 
@@ -136,15 +122,10 @@ for nrun in range(1, 2):
         '{:.3f}'.format(e.Hillas["length"]), 
         '{:.3f}'.format(e.Hillas["dis"]), 
         '{:.3f}'.format(e.Hillas["miss"]), 
-        '{:.3f}'.format(e.Hillas["azwidth"]), 
         sep="\t", file=fout)
         if e.size > 1000:
              print(nrun, e.Nevent, file = foutEvents)
         #    e.vizualize(pixel_coords = pixel_coords, save = True)
     events_cleaned += o
-    events += n
 foutEvents.close()
-fout.close()
-#e = events[1]
-#print(e.clean().pixels)
-#print(e.cclean(neighbours).pixels)
+fout.close()    
