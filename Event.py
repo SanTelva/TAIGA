@@ -176,3 +176,36 @@ class Event():
                 pass
         return b
     
+    def cclean(self, neighbours, A = 14, B = 7):
+        b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
+        for pixel in self.pixels:
+            if self.pixels[pixel][2] < B:
+                b.pixels.pop(pixel)
+            else:
+                n = False
+                if self.pixels[pixel][2] < A:
+                     for pixel1 in neighbours[pixel]:
+                         if pixel1 in self.pixels and self.pixels[pixel1][2] >= A:
+                             n = True
+                             break
+                     if not n: b.pixels.pop(pixel)
+                else:
+                    for pixel1 in neighbours[pixel]:
+                        if pixel1 not in b.pixels: pass #если пиксель уже прогнали
+                        elif self.pixels[pixel1][2] >= B:
+                            n = True
+                            break
+                    if not n: b.pixels.pop(pixel)
+        b.size = 0
+        b.vmax = 0
+        for pixel in b.pixels:
+            b.size += b.pixels[pixel][2]
+            if b.pixels[pixel][2] > b.vmax:
+                b.vmax = b.pixels[pixel][2]
+        if len(b.pixels) >= 4:
+            try:
+                 b.params()
+            except RuntimeWarning:
+                pass
+        return b
+    

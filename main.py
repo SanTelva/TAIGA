@@ -11,6 +11,9 @@ from Event import Event, delta
 Nrun = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
 
+def dist(c1, c2):
+            return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
+
 def Peds(Nrun):
     pathped = "./231119.00/peds.mediana/231119.ped_"
     peds = [[0 for i in range(64)] for j in range(24)] #здесь хранятся данные по пьедесталам 
@@ -58,7 +61,18 @@ while True:
     pixel_coords[int(line[2])] = (int(line[0]), float(line[3]), float(line[4]))
 #print(len(coord.readlines()))
 coord.close()
-
+neighbours = [[] for i in range(640)]
+defined = [(None, None) for i in range(640)]
+for cluster in cluster_coords:
+    for x, y, i in cluster:
+        if i is not None:
+            defined[i] = (x, y)
+for i in range(640):
+    for j in range(640):
+        if not (None in defined[i] or None in defined[j]):
+            if dist(defined[i], defined[j]) < 3.1:
+                neighbours[i].append(j)
+                
 def outs(Nrun, peds = peds):
     pathout = "./231119.00/outs/231119.out_"
 
@@ -92,7 +106,7 @@ def outs(Nrun, peds = peds):
         event = Event(int(Nevent), eventTime, clusters)
         event.recount(cluster_factors, cluster_coords)      
         events.append(event)
-        z = event.clean()
+        z = event.cclean(neighbours)
         if len(z) >= 4:
             events_cleaned.append(z)
         #print(clusters)
@@ -104,7 +118,7 @@ events = []
 fout = open("Params00.csv", "w")
 foutEvents = open("events.txt", "w")
 print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", "Azwidth", sep = "\t", file = fout)
-for nrun in range(1, 123):
+for nrun in range(1, 2):
     #events_cleaned += outs('{:03}'.format(nrun), peds = Peds(nrun))
     Nrun = '{:03}'.format(nrun)
     print(Nrun)
@@ -130,4 +144,7 @@ for nrun in range(1, 123):
     events_cleaned += o
     events += n
 foutEvents.close()
-fout.close()    
+fout.close()
+#e = events[1]
+#print(e.clean().pixels)
+#print(e.cclean(neighbours).pixels)
