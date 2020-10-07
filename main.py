@@ -1,11 +1,9 @@
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
-#mpl.use('Agg')
-#mpl.rc()
 from copy import deepcopy
 import gc
-#from matplotlib.patches import RegularPolygon #drawing hexagons
+
 from Event import Event, delta
 
 Nrun = '{:03}'.format(10)
@@ -29,15 +27,8 @@ def Peds(Nrun):
     return peds
 peds = Peds(Nrun)
 
-<<<<<<< HEAD
-
-factor = open("./231119.00/factors_051019.07fixed.txt", "r")
-=======
-c = [(17, [[4, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 1], [149, 0], [26, 0], [0, 0], [2, 0], [0, 0], [0, 0], [3, 0], [4, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [182, 1], [20, 0], [79, 0], [17, 0], [82, 1], [6, 0], [3, 0], [1, 0], [11, 0], [0, 0], [19, 0], [0, 0], [0, 0], [0, 0], [25, 0], [4, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [150, 0], [12, 0], [50, 0], [0, 0], [0, 0], [0, 0], [2, 0], [0, 0], [130, 0], [13, 0], [19, 0], [2, 0], [0, 0], [0, 0], [4, 0], [0, 0], [0, 0], [0, 0]])]
-a = Event(clusters = c)
 
 factor = open("./231119.01/factors_051019.07fixed.txt", "r")
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
 line = factor.readline()
 for i in range(9):
@@ -113,13 +104,9 @@ def outs(Nrun, peds = peds):
         event = Event(int(Nevent), eventTime, clusters)
         event.recount(cluster_factors, cluster_coords)      
         events.append(event)
-<<<<<<< HEAD
+
         z = event.cclean(neighbours)
         if len(z) >= 4:
-=======
-        z = event.clean()
-        if len(z) > 3:
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
             events_cleaned.append(z)
         #print(clusters)
     fin.close()

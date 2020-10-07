@@ -1,12 +1,6 @@
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
-<<<<<<< HEAD
-
-=======
-mpl.use('Agg')
-#mpl.rc()
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
 from copy import deepcopy
 import gc
 
@@ -20,15 +14,6 @@ def delta(time1, time2):
     t2m = list(map(int, t2m.split(".")))
     
     dt = [t2[i] - t1[i] for i in range(3)]
-<<<<<<< HEAD
-    dtm = [t2m[i] - t1m[i] for i in range(3)]
-    
-    dt = 3600*dt[0]+60*dt[1]+dt[2]
-    dtm = (1000000*dtm[0]+1000*dtm[1]+dtm[2])*10**(-9)
-    return abs(dt+dtm)
-class Event():
-    def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None):
-=======
     dtm = [t2[i] - t1[i] for i in range(3)]
     
     dt = 3600*dt[0]+60*dt[1]+dt[2]
@@ -37,8 +22,7 @@ class Event():
         return abs(dt+dtm)
     return abs(dt)
 class Event():
-    def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None):
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
+    def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None):
         if clusters is None:
             clusters = []
         self.clusters = dict()
@@ -49,11 +33,8 @@ class Event():
         self.time = eventtime
         self.size = 0
         self.vmax = 0
-<<<<<<< HEAD
         self.pixels = deepcopy(pixels)
-=======
-        self.pixels = None
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
+
         
         self.xm = None
         self.ym = None
@@ -87,33 +68,22 @@ class Event():
                     if x is not None and y is not None and v is not None:
                         self.pixels[n]=(x, y, v)
                         self.size += v
-<<<<<<< HEAD
                         if v > self.vmax:
                             self.vmax = v
         del self.clusters
         self.clusters = []
 
     
-    def params(self, source_x = 0, source_y = 0):
-=======
-                        
-                        if v > self.vmax: self.vmax = v
-
-        return self
     
-    def params(self):
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
+    def params(self, source_x=0, source_y=0):
         if None in self.Hillas.values() and self.size > 0:
             self.xm, self.ym, self.x2m, self.y2m, self.xym = 0, 0, 0, 0, 0
             xsum, x2sum, ysum, y2sum, xysum = 0, 0, 0, 0, 0
             for pixel in self.pixels:
                 x, y, v = self.pixels[pixel]
-<<<<<<< HEAD
                 x -= source_x
                 y -= source_y
                 self.pixels[pixel] = (x, y, v)
-=======
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
                 xsum += x * v
                 x2sum += x * x * v
                 ysum += y * v
@@ -137,7 +107,6 @@ class Event():
             self.Hillas["miss"] = abs(b/np.sqrt(1+a*a))
             self.Hillas["size"] = self.size
             self.Hillas["coords"] = (self.xm, self.ym)
-<<<<<<< HEAD
             cos, sin = np.array(self.Hillas["coords"])/self.Hillas["dis"]
             qoors = []
             for pixel in self.pixels:
@@ -146,8 +115,7 @@ class Event():
                 self.pixels[pixel] += (q, ) 
                 qoors.append(q)
             self.Hillas["azwidth"] = np.var(qoors)
-=======
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
+
             return self.Hillas
         elif self.size == 0:
             return False
@@ -177,9 +145,6 @@ class Event():
             plt.close(fig)
     
     def clean(self, A = 14, B = 7):
-        def dist(c1, c2):
-            return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
-<<<<<<< HEAD
         b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
         for pixel in self.pixels:
             if self.pixels[pixel][2] < B:
@@ -240,30 +205,8 @@ class Event():
             if b.pixels[pixel][2] > b.vmax:
                 b.vmax = b.pixels[pixel][2]
         if len(b.pixels) >= 4:
-=======
-        b = deepcopy(self)
-        b.size = 0
-        for pixel in self.pixels:
-            if self.pixels[pixel][2] < A:
-                b.pixels.pop(pixel)
-            else:
-                n = False
-                for pixel1 in self.pixels:
-                    if dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel][2] > B:
-                        n = True
-                        b.size += b.pixels[pixel][2]
-                        break
-                if not n: b.pixels.pop(pixel)
-        del self.clusters
-        self.clusters = []    #убираем мусор
-        if len(b.pixels): 
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
             try:
                  b.params()
             except RuntimeWarning:
                 pass
         return b
-<<<<<<< HEAD
-    
-=======
->>>>>>> cb0abf8093d5facf4dac30fa77b39622e4328d0c
