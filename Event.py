@@ -14,13 +14,11 @@ def delta(time1, time2):
     t2m = list(map(int, t2m.split(".")))
     
     dt = [t2[i] - t1[i] for i in range(3)]
-    dtm = [t2[i] - t1[i] for i in range(3)]
+    dtm = [t2m[i] - t1m[i] for i in range(3)]
     
     dt = 3600*dt[0]+60*dt[1]+dt[2]
     dtm = (1000000*dtm[0]+1000*dtm[1]+dtm[2])*10**(-9)
-    if dtm > 0.001:
-        return abs(dt+dtm)
-    return abs(dt)
+    return abs(dt+dtm)
 class Event():
     def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None):
         if clusters is None:
