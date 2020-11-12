@@ -1,6 +1,7 @@
 import numpy as np
-
-from Event import Event
+import pandas as pd
+from Event import *
+import datetime
 
 Nrun = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
@@ -11,7 +12,7 @@ def dist(c1, c2):
 
 
 def Peds(Nrun):
-    pathped = "./231119.01/peds.mediana/231119.ped_"
+    pathped = "../231119.01/peds.mediana/231119.ped_"
     peds = [[0 for i in range(64)] for j in range(24)] #здесь хранятся данные по пьедесталам 
                            #каждого канала по данному рану
     pedsfile = open(pathped+Nrun, "r")
@@ -26,7 +27,7 @@ def Peds(Nrun):
 peds = Peds(Nrun)
 
 
-factor = open("./231119.01/factors_051019.07fixed.txt", "r")
+factor = open("../231119.01/factors_051019.07fixed.txt", "r")
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
 line = factor.readline()
 for i in range(9):
@@ -43,7 +44,7 @@ factor.close()
 
 #попытаемся пересчитать в систему координат
 xycoord = "xy_turn_2019j.txt"
-coord = open("./231119.01/"+xycoord, "r")
+coord = open("../231119.01/"+xycoord, "r")
 pixel_coords = dict() #сопоставление ID ФЭУ и его координат
 cluster_coords = [[[None, None, None] for i in range(64)] for j in range(24)]
 while True:  
@@ -70,7 +71,7 @@ for i in range(640):
                 neighbours[i].append(j)
                 
 def outs(Nrun, peds = peds):
-    pathout = "./231119.01/outs/231119.out_"
+    pathout = "../231119.01/outs/231119.out_"
 
     fin=open(pathout+Nrun, "r")
     events = []
@@ -112,16 +113,27 @@ def outs(Nrun, peds = peds):
 
 events_cleaned = []
 events = []
-fout = open("Params01.csv", "w")
+fout = open("Params01w.csv", "w")
+pointing = pd.read_csv("pointing_data_2019-11-23_15:46:05.csv")[["time", "source_x", "source_y"]]
+
 #foutEvents = open("events.txt", "w")
-print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", "Azwidth", sep = "\t", file = fout)
+print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", "Azwidth", "Alpha", sep = "\t", file = fout)
 for nrun in range(1, 139):
     #events_cleaned += outs('{:03}'.format(nrun), peds = Peds(nrun))
     Nrun = '{:03}'.format(nrun)
     print(Nrun)
     peds = Peds(Nrun)
     o, n = outs(Nrun, peds)
+    timeindex = 0
     for e in o:
+        timepoint = pointing.time[timeindex]
+        while delta(time(timepoint), e.time) > 1 or timestamp(e.time) > timepoint:
+            timeindex += 1
+            timepoint = pointing.time[timeindex]
+            if timestamp(e.time) < timepoint:
+                break
+        #e.params()
+        e.params(pointing.source_x[timeindex], pointing.source_y[timeindex])
         print(
         nrun, 
         e.Nevent, 
@@ -134,12 +146,13 @@ for nrun in range(1, 139):
         '{:.3f}'.format(e.Hillas["dis"]), 
         '{:.3f}'.format(e.Hillas["miss"]), 
         '{:.3f}'.format(e.Hillas["azwidth"]), 
+        '{:.3f}'.format(e.Hillas["alpha"]), 
         sep="\t", file=fout)
         #if e.size > 1010:
              #print(nrun, e.Nevent, file = foutEvents)
         #    e.vizualize(pixel_coords = pixel_coords, save = True)
-    events_cleaned += o
-    events += n
+    #events_cleaned += o
+    #events += n
 fout.close()
 #e = events[1]
 #print(e.clean().pixels)

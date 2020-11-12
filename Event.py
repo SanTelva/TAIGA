@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 import gc
+import datetime
 
 def delta(time1, time2):
     #12:34:56,789.101.112
@@ -19,6 +20,19 @@ def delta(time1, time2):
     dt = 3600*dt[0]+60*dt[1]+dt[2]
     dtm = (1000000*dtm[0]+1000*dtm[1]+dtm[2])*10**(-9)
     return abs(dt+dtm)
+
+def time(timestamp):
+    value = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+    milli, micro = value.strftime('%f')[0:3], value.strftime('%f')[2:-1]
+    return value.strftime('%H:%M:%S,')+".".join([milli, micro, "000"])
+
+def timestamp(eventtime, date = datetime.date(2019, 11, 23)):
+    t, m = eventtime.split(",")
+    datestr = datetime.date.strftime(date, "%d.%m.%Y ")
+    m = ','+''.join(m.split(".")[:-1])
+    result = datetime.datetime.timestamp(datetime.datetime.strptime(datestr + t + m, "%d.%m.%Y %H:%M:%S,%f"))
+    return result
+
 class Event():
     def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None):
         if clusters is None:
@@ -39,7 +53,7 @@ class Event():
         self.x2m = None
         self.y2m = None
         self.xym = None
-        self.Hillas = {"a": None, "b": None, "width": None, "length": None, "dis": None, "miss": None}
+        self.Hillas = {"a": None, "b": None, "width": None, "length": None, "dis": None, "miss": None, "alpha": None}
         
     def __str__(self):
         return "#"+self.Nevent+'  '+self.time
@@ -105,6 +119,7 @@ class Event():
             self.Hillas["miss"] = abs(b/np.sqrt(1+a*a))
             self.Hillas["size"] = self.size
             self.Hillas["coords"] = (self.xm, self.ym)
+            self.Hillas["alpha"] = np.arcsin(self.Hillas["miss"]/self.Hillas["dis"])
             cos, sin = np.array(self.Hillas["coords"])/self.Hillas["dis"]
             qoors = []
             for pixel in self.pixels:
@@ -202,9 +217,4 @@ class Event():
             b.size += b.pixels[pixel][2]
             if b.pixels[pixel][2] > b.vmax:
                 b.vmax = b.pixels[pixel][2]
-        if len(b.pixels) >= 4:
-            try:
-                 b.params()
-            except RuntimeWarning:
-                pass
         return b

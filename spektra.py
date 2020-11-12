@@ -41,21 +41,21 @@ def logSpectra(a, inte = False, bins = 400):
     plt.scatter(b, h)
         
 
-fig, ax = plt.subplots(figsize = (7, 7))   
+fig, ax = plt.subplots(figsize = (5, 5))   
 df = pd.read_csv("Params00.csv", sep="\t")
 df1 = pd.read_csv("Params01.csv", sep="\t")
 array = [delta(df1["Time"][i], df1["Time"][i-1]) for i in range(1, len(df1["Time"]))]
 
-array = pd.Series(array)
-a2 = array[array < 2]
-y, t, _ = plt.hist(a2, log=True, bins = 150, label=r"$\Delta$t spectrum")
-t = t[:-1]
-popt, pcov = curve_fit(func, t, y)
-plt.plot(t, func(t, *popt), 'r-',
-label='fit: a=%5.3f, b=%5.3f' % tuple(popt))
-#A, g = popt
-ax.legend()
-ax.set_xlabel("Time, s")
-ax.text(0.6, 50, r"$A~\exp(-b\Delta t)$")
-t = delta(df["Time"][0], df["Time"][len(df["Time"])-1])
+#array = pd.Series(array)
+#a2 = array[array < 2]
+#y, t, _ = plt.hist(a2, log=True, bins = 150, label=r"$\Delta$t spectrum")
+#t = t[:-1]
+#popt, pcov = curve_fit(func, t, y)
+#plt.plot(t, func(t, *popt), 'r-',
+#label='fit: a=%5.3f, b=%5.3f' % tuple(popt))
+##A, g = popt
+#ax.legend()
+#ax.set_xlabel("Time, s")
+#ax.text(0.6, 50, r"$A~\exp(-b\Delta t)$")
+#t = delta(df["Time"][0], df["Time"][len(df["Time"])-1])
 
