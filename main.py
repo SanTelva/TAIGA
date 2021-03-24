@@ -1,21 +1,43 @@
 import numpy as np
 import pandas as pd
 from Event import *
-import datetime
+import os
 
-Nrun = '{:03}'.format(10)
+def sew_tracking(template="pointing_data_2020"):
+    files = [('./trackings/'+f) for f in os.listdir('./trackings') if f.startswith(template)]
+    print(files)
+    df = pd.read_csv(files[0])
+    df = df[["time", "hh", "mm", "ss", "source_x", "source_y", "tracking", "is_good"]][df["is_good"]==1]
+    if len(files) > 1:
+        for i in range(1, len(files)):
+            df1 = pd.read_csv(files[i])
+            df1 = df1[["time", "hh", "mm", "ss", "source_x", "source_y", "tracking", "is_good"]][df1["is_good"]==1]
+            df = pd.concat([df, df1])
+    return df
+
+Nportion = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
-
-
+EXPOS = "160920.00"
+if len(EXPOS.split('.')) > 1:
+    OBSERVDATE, NRUN = EXPOS.split(".")
+else:
+    OBSERVDATE, NRUN = EXPOS, 0
+NRUN = int(NRUN)
+day, month, year = int(OBSERVDATE[:2]), int(OBSERVDATE[2:4]), 2000+int(OBSERVDATE[4:6]) 
+PEDSTYPE = "peds"
+wobble=True
+portions_amount = len(os.listdir(path="../"+EXPOS+"/outs"))
+# portions_amount=10
 def dist(c1, c2):
     return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
 
 
-def Peds(Nrun):
-    pathped = "../231119.01/peds.mediana/231119.ped_"
+def Peds(Nportion):
+    pathped = "/".join(["..", EXPOS, PEDSTYPE, EXPOS[:-2]+"ped_"])
+    #pathped = "../231119.01/peds.mediana/231119.ped_"
     peds = [[0 for i in range(64)] for j in range(24)] #здесь хранятся данные по пьедесталам 
                            #каждого канала по данному рану
-    pedsfile = open(pathped+Nrun, "r")
+    pedsfile = open(pathped+Nportion, "r")
     while True:  
         line = pedsfile.readline().split()
         if not line:
@@ -24,10 +46,10 @@ def Peds(Nrun):
                                                               #пьедестал округляю
     pedsfile.close()
     return peds
-peds = Peds(Nrun)
+peds = Peds(Nportion)
 
-
-factor = open("../231119.01/factors_051019.07fixed.txt", "r")
+# "../231119.01/factors_051019.07fixed.txt"
+factor = open("/".join(["..", EXPOS, "factors_051019.07fixed.txt"]), "r")
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
 line = factor.readline()
 for i in range(9):
@@ -42,9 +64,8 @@ while True:
     #количество d.c., соответствующих одному фотоэлектрону
 factor.close()
 
-#попытаемся пересчитать в систему координат
-xycoord = "xy_turn_2019j.txt"
-coord = open("../231119.01/"+xycoord, "r")
+#попытаемся пересчитать в систему координат 
+coord = open("/".join(["..", EXPOS, "xy_turn_2019j.txt"]), "r")
 pixel_coords = dict() #сопоставление ID ФЭУ и его координат
 cluster_coords = [[[None, None, None] for i in range(64)] for j in range(24)]
 while True:  
@@ -70,11 +91,12 @@ for i in range(640):
             if dist(defined[i], defined[j]) < 3.1:
                 neighbours[i].append(j)
                 
-def outs(Nrun, peds = peds):
-    pathout = "../231119.01/outs/231119.out_"
+def outs(Nportion, peds = peds):
+    pathout = "/".join(["..", EXPOS, "outs", EXPOS[:-2]+"out_"])
+    # pathout = "../231119.01/outs/231119.out_"
 
-    fin=open(pathout+Nrun, "r")
-    events = []
+    fin=open(pathout+Nportion, "r")
+    # events = []
     events_cleaned = []
     while True:  
         # читаем одну строку
@@ -102,58 +124,100 @@ def outs(Nrun, peds = peds):
                     #print(Nchannel // 2, cluster[Nchannel][0])
         event = Event(int(Nevent), eventTime, clusters)
         event.recount(cluster_factors, cluster_coords)      
-        events.append(event)
+        # events.append(event)
 
         z = event.cclean(neighbours)
         if len(z) >= 4:
             events_cleaned.append(z)
         #print(clusters)
     fin.close()
-    return events_cleaned, events
+    return events_cleaned
 
 events_cleaned = []
-events = []
-fout = open("Params01w.csv", "w")
-pointing = pd.read_csv("pointing_data_2019-11-23_15:46:05.csv")[["time", "source_x", "source_y"]]
+events = 0
+timefile = open("Times.txt", "w")
+fout = open("Params"+EXPOS+"W"*wobble+".csv", "w")
+pointing = sew_tracking("pointing_data_"+"-".join([str(year),'{:02d}'.format(month), '{:02d}'.format(day)]))
+pointing.index = np.arange(len(pointing))
 
 #foutEvents = open("events.txt", "w")
-print("Nrun", "ID", "Time", "Size", "A", "B", "Width", "Length", "Dis", "Miss", "Azwidth", "Alpha", sep = "\t", file = fout)
-for nrun in range(1, 139):
-    #events_cleaned += outs('{:03}'.format(nrun), peds = Peds(nrun))
-    Nrun = '{:03}'.format(nrun)
-    print(Nrun)
-    peds = Peds(Nrun)
-    o, n = outs(Nrun, peds)
+print("nportion", "ID", "Time", 
+      "Size", "Con2",
+      "<xN>", "<xS>", "<xA>", 
+      "<yN>", "<yS>", "<yA>",
+      "WidthN", "WidthS", "WidthA",
+      "LengthN", "LengthS", "LengthA",
+      "DisN", "DisS", "DisA", 
+      "MissN", "MissS", "MissA", 
+      "AzwidthN", "AzwidthS", "AzwidthA",  
+      "AlphaN", "AlphaS", "AlphaA", 
+      sep = "\t", file = fout)
+for nportion in range(1, 1+portions_amount):
+    #events_cleaned += outs('{:03}'.format(nportion), peds = Peds(nportion))
+    Nportion = '{:03}'.format(nportion)
+    print(Nportion)
+    peds = Peds(Nportion)
+    o= outs(Nportion, peds)
     timeindex = 0
     for e in o:
-        timepoint = pointing.time[timeindex]
-        while delta(time(timepoint), e.time) > 1 or timestamp(e.time) > timepoint:
+        timepoint = time(pointing.time[timeindex])
+        while delta(timepoint, e.time) > 1 and timeindex<len(pointing)-1:# or timestamp(e.time, datetime.date(year, month, day)) > timepoint:
             timeindex += 1
-            timepoint = pointing.time[timeindex]
-            if timestamp(e.time) < timepoint:
+            timepoint = time(pointing.time[timeindex])
+            # print("point: ", timepoint, file = timefile)
+            if timestamp(e.time) < timestamp(timepoint):
+                
                 break
-        #e.params()
-        e.params(pointing.source_x[timeindex], pointing.source_y[timeindex])
+        # print("event: ", e.time, e.Nevent, file = timefile)
+            
+        if not (wobble): e.params(angles = True)
+        else: e.params(pointing.source_x[timeindex], pointing.source_y[timeindex], angles = True)
         print(
-        nrun, 
+        nportion, 
         e.Nevent, 
-        e.time, 
+        e.time.replace(",", ";"), 
         e.size,
-        '{:.3f}'.format(e.Hillas["a"]),
-        '{:.3f}'.format(e.Hillas["b"]), 
-        '{:.3f}'.format(e.Hillas["width"]),
-        '{:.3f}'.format(e.Hillas["length"]), 
-        '{:.3f}'.format(e.Hillas["dis"]), 
-        '{:.3f}'.format(e.Hillas["miss"]), 
-        '{:.3f}'.format(e.Hillas["azwidth"]), 
-        '{:.3f}'.format(e.Hillas["alpha"]), 
+        '{:.3f}'.format(e.Con2),
+        '{:.3f}'.format(e.Hillas["coordsN"][0]),
+        '{:.3f}'.format(e.Hillas["coordsS"][0]),
+        '{:.3f}'.format(e.Hillas["coordsA"][0]),
+        '{:.3f}'.format(e.Hillas["coordsN"][1]),
+        '{:.3f}'.format(e.Hillas["coordsS"][1]),
+        '{:.3f}'.format(e.Hillas["coordsA"][1]),
+        '{:.3f}'.format(e.Hillas["widthN"]),
+        '{:.3f}'.format(e.Hillas["widthS"]),
+        '{:.3f}'.format(e.Hillas["widthA"]),
+        '{:.3f}'.format(e.Hillas["lengthN"]), 
+        '{:.3f}'.format(e.Hillas["lengthS"]),
+        '{:.3f}'.format(e.Hillas["lengthA"]),
+        '{:.3f}'.format(e.Hillas["disN"]), #0.1206 -- convert from cm to degrees
+        '{:.3f}'.format(e.Hillas["disS"]),
+        '{:.3f}'.format(e.Hillas["disA"]),
+        '{:.3f}'.format(e.Hillas["missN"]), 
+        '{:.3f}'.format(e.Hillas["missS"]),
+        '{:.3f}'.format(e.Hillas["missA"]),
+        '{:.3f}'.format(e.Hillas["azwidthN"]), 
+        '{:.3f}'.format(e.Hillas["azwidthS"]), 
+        '{:.3f}'.format(e.Hillas["azwidthA"]), 
+        '{:.3f}'.format(e.Hillas["alphaN"]), 
+        '{:.3f}'.format(e.Hillas["alphaS"]), 
+        '{:.3f}'.format(e.Hillas["alphaA"]), 
         sep="\t", file=fout)
-        #if e.size > 1010:
-             #print(nrun, e.Nevent, file = foutEvents)
-        #    e.vizualize(pixel_coords = pixel_coords, save = True)
-    #events_cleaned += o
-    #events += n
+    events_cleaned += o
+    events += len(o)
+
+def cut(events, save = False, mode = "S"):
+    marked_events = []
+    for e in events:
+        if (e.size > 120 
+            and e.Con2 > 0.54
+            and dist(e.Hillas["coords"+mode], (0, 0)) < 2.1
+            and e.Hillas["width"+mode] < 0.076 * np.log10(e.size) - 0.047
+            and e.Hillas["length"+mode] < 0.31
+            and 0.36 < e.Hillas["dis"+mode] < 1.53):
+                marked_events.append(e)
+                if save: e.vizualize(pixel_coords=pixel_coords, save=True)
+    return marked_events
+#marked = cut(events_cleaned)
+plt.hist([e.Hillas["alphaS"] for e in events_cleaned])
 fout.close()
-#e = events[1]
-#print(e.clean().pixels)
-#print(e.cclean(neighbours).pixels)

@@ -2,8 +2,9 @@ import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
-import gc
+# import gc
 import datetime
+#mpl.use("Agg")
 
 def delta(time1, time2):
     #12:34:56,789.101.112
@@ -44,16 +45,15 @@ class Event():
         self.Nevent = '{:06}'.format(Nevent)
         self.time = eventtime
         self.size = 0
-        self.vmax = 0
+        self.vmax1 = 0
+        self.vmax2 = 0
         self.pixels = deepcopy(pixels)
-
-        
-        self.xm = None
-        self.ym = None
-        self.x2m = None
-        self.y2m = None
-        self.xym = None
-        self.Hillas = {"a": None, "b": None, "width": None, "length": None, "dis": None, "miss": None, "alpha": None}
+        # self.xm = None
+        # self.ym = None
+        # self.x2m = None
+        # self.y2m = None
+        # self.xym = None
+        self.Hillas = {"widthN": None, "lengthN": None, "disN": None, "missN": None, "alphaN": None}
         
     def __str__(self):
         return "#"+self.Nevent+'  '+self.time
@@ -80,54 +80,188 @@ class Event():
                     if x is not None and y is not None and v is not None:
                         self.pixels[n]=(x, y, v)
                         self.size += v
-                        if v > self.vmax:
-                            self.vmax = v
+                        if v > self.vmax1:
+                            self.vmax1 = v
+                        elif v > self.vmax2:
+                            self.vmax2 = v
         del self.clusters
         self.clusters = []
 
     
     
-    def params(self, source_x=0, source_y=0):
+    def params(self, source_x=0, source_y=0, angles = False):
+        '''
+        N = norm, source_x=0, source_y=0.
+        Source is just above IACT, without shift.
+        
+        S = source, all Hillas parametres have to be recounted
+        relatively source_x, source_y
+        
+        A = anti-source, HP have to be recounted
+        relatively -source_x, -source_y
+        Parameters
+        ----------
+        source_x : TYPE, optional
+            DESCRIPTION. The default is 0.
+        source_y : TYPE, optional
+            DESCRIPTION. The default is 0.
+
+        Returns dictionary of Hillas parameters for this event, False if size == 0
+
+        '''
         if None in self.Hillas.values() and self.size > 0:
-            self.xm, self.ym, self.x2m, self.y2m, self.xym = 0, 0, 0, 0, 0
-            xsum, x2sum, ysum, y2sum, xysum = 0, 0, 0, 0, 0
+            self.xNm, self.yNm, self.xN2m, self.yN2m, self.xyNm = 0, 0, 0, 0, 0
+            self.Con2 = (self.vmax1+self.vmax2)/self.size
+            self.xSm, self.ySm, self.xS2m, self.yS2m, self.xySm = 0, 0, 0, 0, 0
+            self.xAm, self.yAm, self.xA2m, self.yA2m, self.xyAm = 0, 0, 0, 0, 0
+            xSsum, xS2sum, ySsum, yS2sum, xySsum = 0, 0, 0, 0, 0
+            xAsum, xA2sum, yAsum, yA2sum, xyAsum = 0, 0, 0, 0, 0
+            xNsum, xN2sum, yNsum, yN2sum, xyNsum = 0, 0, 0, 0, 0
+            
             for pixel in self.pixels:
                 x, y, v = self.pixels[pixel]
-                x -= source_x
-                y -= source_y
-                self.pixels[pixel] = (x, y, v)
-                xsum += x * v
-                x2sum += x * x * v
-                ysum += y * v
-                y2sum += y * y * v
-                xysum += x * y * v
-            self.xm = xsum / self.size
-            self.ym = ysum / self.size
-            self.x2m = x2sum / self.size
-            self.y2m = y2sum / self.size
-            self.xym = xysum / self.size
-            sigmax = self.x2m - self.xm**2
-            sigmay = self.y2m - self.ym**2
-            sigmaxy = self.xym - self.xm*self.ym
-            d = sigmay-sigmax
-
-            a = self.Hillas["a"] = (d+np.sqrt(d*d+4*sigmaxy**2))/(2*sigmaxy)
-            b = self.Hillas["b"] = self.ym-self.Hillas["a"]*self.xm
-            self.Hillas["width"] = np.sqrt((sigmay-2*a*sigmaxy+a*a*sigmax)/(1+a*a))
-            self.Hillas["length"] = np.sqrt((sigmax+2*a*sigmaxy+a*a*sigmay)/(1+a*a))
-            self.Hillas["dis"] = np.sqrt(self.xm**2+self.ym**2)
-            self.Hillas["miss"] = abs(b/np.sqrt(1+a*a))
+                # x -= source_x
+                # y -= source_y
+                # self.pixels[pixel] = (x, y, v)
+                xNsum += x * v
+                xN2sum += x * x * v
+                yNsum += y * v
+                yN2sum += y * y * v
+                xyNsum += x * y * v
+                if source_x or source_y:
+                    xS = x - source_x
+                    yS = y - source_y
+                    
+                    xA = x + source_x
+                    yA = y + source_y
+                    
+                    xSsum += xS * v
+                    xS2sum += xS * xS * v
+                    ySsum += yS * v
+                    yS2sum += yS * yS * v
+                    xySsum += xS * yS * v
+                    
+                    xAsum += xA * v
+                    xA2sum += xA * xA * v
+                    yAsum += yA * v
+                    yA2sum += yA * yA * v
+                    xyAsum += xA * yA * v       
+            self.xNm = xNsum / self.size
+            self.yNm = yNsum / self.size
+            self.xN2m = xN2sum / self.size
+            self.yN2m = yN2sum / self.size
+            self.xyNm = xyNsum / self.size
+            
+            self.xSm = xSsum / self.size
+            self.ySm = ySsum / self.size
+            self.xS2m = xS2sum / self.size
+            self.yS2m = yS2sum / self.size
+            self.xySm = xySsum / self.size
+            
+            self.xAm = xAsum / self.size
+            self.yAm = yAsum / self.size
+            self.xA2m = xA2sum / self.size
+            self.yA2m = yA2sum / self.size
+            self.xyAm = xyAsum / self.size
+            
+            sigmaxN = self.xN2m - self.xNm**2
+            sigmayN = self.yN2m - self.yNm**2
+            sigmaxyN = self.xyNm - self.xNm*self.yNm
+            dN = sigmayN-sigmaxN
+            zN = (dN**2+4*sigmaxyN**2)**0.5
+            uN = 1+dN/zN
+            vN = 2-uN
+            
+            if source_x or source_y:
+                sigmaxS = self.xS2m - self.xSm**2
+                sigmayS = self.yS2m - self.ySm**2
+                sigmaxyS = self.xySm - self.xSm*self.ySm
+                dS = sigmayS-sigmaxS
+                zS = (dS**2+4*sigmaxyS**2)**0.5
+                uS = 1+dS/zS
+                vS = 2-uS
+                
+                sigmaxA = self.xA2m - self.xAm**2
+                sigmayA = self.yA2m - self.yAm**2
+                sigmaxyA = self.xyAm - self.xAm*self.yAm
+                dA = sigmayA-sigmaxA
+                zA = (dA**2+4*sigmaxyA**2)**0.5
+                uA = 1+dA/zA
+                vA = 2-uA
+            
+            #a = self.Hillas["a"] = (d+np.sqrt(d*d+4*sigmaxy**2))/(2*sigmaxy)
+            # b = self.Hillas["b"] = self.ym-self.Hillas["a"]*self.xm
+            # self.Hillas["width"] = np.sqrt((sigmay-2*a*sigmaxy+a*a*sigmax)/(1+a*a))
+            # self.Hillas["length"] = np.sqrt((sigmax+2*a*sigmaxy+a*a*sigmay)/(1+a*a))
+            # self.Hillas["dis"] = np.sqrt(self.xm**2+self.ym**2)
+            # self.Hillas["miss"] = abs(b/np.sqrt(1+a*a))
             self.Hillas["size"] = self.size
-            self.Hillas["coords"] = (self.xm, self.ym)
-            self.Hillas["alpha"] = np.arcsin(self.Hillas["miss"]/self.Hillas["dis"])
-            cos, sin = np.array(self.Hillas["coords"])/self.Hillas["dis"]
-            qoors = []
-            for pixel in self.pixels:
-                x, y, _ = self.pixels[pixel]
-                q = (self.xm - x) * sin + (y - self.ym) * cos 
-                self.pixels[pixel] += (q, ) 
-                qoors.append(q)
-            self.Hillas["azwidth"] = np.var(qoors)
+            
+            self.Hillas["widthN"] = ((sigmaxN+sigmayN-zN)/2)**0.5
+            self.Hillas["lengthN"] = ((sigmaxN+sigmayN+zN)/2)**0.5
+            self.Hillas["disN"] = np.sqrt(self.xNm**2+self.yNm**2)
+            self.Hillas["missN"] = np.sqrt((uN*self.xNm**2+vN*self.yNm**2)/2
+                                           -(2*sigmaxyN*self.xNm*self.yNm/zN))
+            self.Hillas["azwidthN"] = np.sqrt(self.xNm**2*self.yN2m
+                                             -2*self.xNm*self.yNm
+                                             +self.xN2m*self.yNm**2)/self.Hillas["disN"]
+            self.Hillas["coordsN"] = (self.xNm, self.yNm)
+            self.Hillas["alphaN"] = np.degrees(np.arcsin(self.Hillas["missN"]/self.Hillas["disN"]))
+            
+            if source_x or source_y:
+                self.Hillas["widthS"] = ((sigmaxS+sigmayS-zS)/2)**0.5
+                self.Hillas["lengthS"] = ((sigmaxS+sigmayS+zS)/2)**0.5
+                self.Hillas["disS"] = np.sqrt(self.xSm**2+self.ySm**2)
+                self.Hillas["missS"] = np.sqrt((uS*self.xSm**2+vS*self.ySm**2)/2
+                                               -(2*sigmaxyS*self.xSm*self.ySm/zS))
+                self.Hillas["azwidthS"] = np.sqrt(self.xSm**2*self.yS2m
+                                                 -2*self.xSm*self.ySm
+                                                 +self.xS2m*self.ySm**2)/self.Hillas["disS"]
+                self.Hillas["coordsS"] = (self.xSm, self.ySm)
+                self.Hillas["alphaS"] = np.degrees(np.arcsin(self.Hillas["missS"]/self.Hillas["disS"]))
+                
+                self.Hillas["widthA"] = ((sigmaxA+sigmayA-zA)/2)**0.5
+                self.Hillas["lengthA"] = ((sigmaxA+sigmayA+zA)/2)**0.5
+                self.Hillas["disA"] = np.sqrt(self.xAm**2+self.yAm**2)
+                self.Hillas["missA"] = np.sqrt((uA*self.xAm**2+vA*self.yAm**2)/2
+                                               -(2*sigmaxyA*self.xAm*self.yAm/zA))
+                self.Hillas["azwidthA"] = np.sqrt(self.xAm**2*self.yA2m
+                                                 -2*self.xAm*self.yAm
+                                                 +self.xA2m*self.yAm**2)/self.Hillas["disA"]
+                self.Hillas["coordsA"] = (self.xAm, self.yAm)
+                self.Hillas["alphaA"] = np.degrees(np.arcsin(self.Hillas["missA"]/self.Hillas["disA"]))
+            else:
+                self.xSm = self.xAm = self.xNm
+                self.ySm = self.yAm = self.yNm
+                self.Hillas["widthS"] = self.Hillas["widthA"] = self.Hillas["widthN"]
+                self.Hillas["lengthS"] = self.Hillas["lengthA"] = self.Hillas["lengthN"]
+                self.Hillas["disS"] = self.Hillas["disA"] = self.Hillas["disN"]
+                self.Hillas["missS"] = self.Hillas["missA"] = self.Hillas["missN"]
+                self.Hillas["azwidthS"] = self.Hillas["azwidthA"] = self.Hillas["azwidthN"]
+                self.Hillas["coordsS"] = self.Hillas["coordsA"] = self.Hillas["coordsN"]
+                self.Hillas["alphaS"] = self.Hillas["alphaA"] = self.Hillas["alphaN"]
+                
+            if angles:
+                self.Hillas["widthN"] *= 0.1206
+                self.Hillas["lengthN"] *= 0.1206
+                self.Hillas["disN"]*= 0.1206
+                self.Hillas["missN"] *= 0.1206
+                self.Hillas["azwidthN"] *= 0.1206
+                self.Hillas["coordsN"] = (0.1206 * self.xNm, 0.1206*self.yNm)
+                
+                self.Hillas["widthS"] *= 0.1206
+                self.Hillas["lengthS"] *= 0.1206
+                self.Hillas["disS"] *= 0.1206
+                self.Hillas["missS"] *= 0.1206
+                self.Hillas["azwidthS"] *= 0.1206
+                self.Hillas["coordsS"] = (0.1206*self.xSm, 0.1206*self.ySm)
+                
+                self.Hillas["widthA"] *= 0.1206
+                self.Hillas["lengthA"] *= 0.1206
+                self.Hillas["disA"] *= 0.1206
+                self.Hillas["missA"] *= 0.1206
+                self.Hillas["azwidthA"] *= 0.1206
+                self.Hillas["coordsA"] = (0.1206*self.xAm, 0.1206*self.yAm)
 
             return self.Hillas
         elif self.size == 0:
@@ -147,49 +281,49 @@ class Event():
                 if pixel not in self.pixels:
                     plt.scatter(pixel_coords[pixel][1], pixel_coords[pixel][2], color = colors[(pixel_coords[pixel][0]-1)%7], alpha = 0.1)
                 else:
-                    plt.scatter(pixel_coords[pixel][1], pixel_coords[pixel][2], color = "orange", alpha = alpha + (1-alpha)*self.pixels[pixel][2]/self.vmax)
+                    plt.scatter(pixel_coords[pixel][1], pixel_coords[pixel][2], color = "orange", alpha = alpha + (1-alpha)*self.pixels[pixel][2]/self.vmax1)
                     ax.text(self.pixels[pixel][0], self.pixels[pixel][1], str(self.pixels[pixel][2]), fontsize = 10) 
         else:    
             for pixel in self.pixels:
-                plt.scatter(self.pixels[pixel][0], self.pixels[pixel][1], color = "orange", alpha = alpha + (1-alpha)*self.pixels[pixel][2]/self.vmax)
+                plt.scatter(self.pixels[pixel][0], self.pixels[pixel][1], color = "orange", alpha = alpha + (1-alpha)*self.pixels[pixel][2]/self.vmax1)
                 ax.text(self.pixels[pixel][0], self.pixels[pixel][1], str(self.pixels[pixel][2]), fontsize = 10) 
         if save:
-            plt.savefig("results/"+self.Nevent+".png", dpi = 200)
+            plt.savefig("results/pics/"+self.Nevent+".png", dpi = 200)
             plt.close(fig)
     
-    def clean(self, A = 14, B = 7):
-        b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
-        for pixel in self.pixels:
-            if self.pixels[pixel][2] < B:
-                b.pixels.pop(pixel)
-            else:
-                n = False
-                if self.pixels[pixel][2] < A:
-                     for pixel1 in self.pixels:
-                         if pixel1 not in b.pixels or pixel == pixel1: pass
-                         elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= A:
-                             n = True
-                             break
-                     if not n: b.pixels.pop(pixel)
-                else:
-                    for pixel1 in self.pixels:
-                        if pixel1 not in b.pixels or pixel == pixel1: pass #если пиксель уже прогнали
-                        elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= B:
-                            n = True
-                            break
-                    if not n: b.pixels.pop(pixel)
-        b.size = 0
-        b.vmax = 0
-        for pixel in b.pixels:
-            b.size += b.pixels[pixel][2]
-            if b.pixels[pixel][2] > b.vmax:
-                b.vmax = b.pixels[pixel][2]
-        if len(b.pixels) >= 4:
-            try:
-                 b.params()
-            except RuntimeWarning:
-                pass
-        return b
+    # def clean(self, A = 14, B = 7):
+    #     b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
+    #     for pixel in self.pixels:
+    #         if self.pixels[pixel][2] < B:
+    #             b.pixels.pop(pixel)
+    #         else:
+    #             n = False
+    #             if self.pixels[pixel][2] < A:
+    #                  for pixel1 in self.pixels:
+    #                      if pixel1 not in b.pixels or pixel == pixel1: pass
+    #                      elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= A:
+    #                          n = True
+    #                          break
+    #                  if not n: b.pixels.pop(pixel)
+    #             else:
+    #                 for pixel1 in self.pixels:
+    #                     if pixel1 not in b.pixels or pixel == pixel1: pass #если пиксель уже прогнали
+    #                     elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= B:
+    #                         n = True
+    #                         break
+    #                 if not n: b.pixels.pop(pixel)
+    #     b.size = 0
+    #     b.vmax1 = 0
+    #     for pixel in b.pixels:
+    #         b.size += b.pixels[pixel][2]
+    #         if b.pixels[pixel][2] > b.vmax1:
+    #             b.vmax1 = b.pixels[pixel][2]
+    #     if len(b.pixels) >= 4:
+    #         try:
+    #              b.params()
+    #         except RuntimeWarning:
+    #             pass
+    #     return b
     
     def cclean(self, neighbours, A = 14, B = 7):
         b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
@@ -212,9 +346,12 @@ class Event():
                             break
                     if not n: b.pixels.pop(pixel)
         b.size = 0
-        b.vmax = 0
+        b.vmax1 = 0
+        b.vmax2 = 0
         for pixel in b.pixels:
             b.size += b.pixels[pixel][2]
-            if b.pixels[pixel][2] > b.vmax:
-                b.vmax = b.pixels[pixel][2]
+            if b.pixels[pixel][2] > b.vmax1:
+                b.vmax1 = b.pixels[pixel][2]
+            elif b.pixels[pixel][2] > b.vmax2:
+                b.vmax2 = b.pixels[pixel][2]
         return b
