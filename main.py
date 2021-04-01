@@ -27,7 +27,7 @@ day, month, year = int(OBSERVDATE[:2]), int(OBSERVDATE[2:4]), 2000+int(OBSERVDAT
 PEDSTYPE = "peds"
 wobble=True
 portions_amount = len(os.listdir(path="../"+EXPOS+"/outs"))
-# portions_amount=10
+portions_amount=2
 def dist(c1, c2):
     return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
 
@@ -205,6 +205,8 @@ for nportion in range(1, 1+portions_amount):
         sep="\t", file=fout)
     events_cleaned += o
     events += len(o)
+for e in events_cleaned:
+    e.saveevent(EXPOS)
 
 def cut(events, save = False, mode = "S"):
     marked_events = []

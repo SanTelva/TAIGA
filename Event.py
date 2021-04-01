@@ -324,7 +324,42 @@ class Event():
     #         except RuntimeWarning:
     #             pass
     #     return b
-    
+    def saveevent(self, EXPOS, path="/events/"):
+        fout = open("../"+EXPOS+ path + self.Nevent+".event", "w")
+        print(self.Nevent, self.time, sep="\t", file=fout)
+        print(len(self.pixels), file=fout)
+        for pixel in self.pixels:
+            print(self.pixels[pixel][0], self.pixels[pixel][1], self.pixels[pixel][2], sep='\t', file=fout)
+        if None not in self.Hillas.values():
+                print( 
+                'Size:\t', self.size, "\n",
+                'Con2:\t{:.3f}\n'.format(self.Con2),
+                '<xN>\t{:.3f}\n'.format(self.Hillas["coordsN"][0]),
+                '<xS>\t{:.3f}\n'.format(self.Hillas["coordsS"][0]),
+                '<xA>\t{:.3f}\n'.format(self.Hillas["coordsA"][0]),
+                '<yN>\t{:.3f}\n'.format(self.Hillas["coordsN"][1]),
+                '<yS>\t{:.3f}\n'.format(self.Hillas["coordsS"][1]),
+                '<yA>\t{:.3f}\n'.format(self.Hillas["coordsA"][1]),
+                'widthN\t{:.3f}\n'.format(self.Hillas["widthN"]),
+                'widthS\t{:.3f}\n'.format(self.Hillas["widthS"]),
+                'widthA\t{:.3f}\n'.format(self.Hillas["widthA"]),
+                'lengthN\t{:.3f}\n'.format(self.Hillas["lengthN"]), 
+                'lengthS\t{:.3f}\n'.format(self.Hillas["lengthS"]),
+                'lengthA\t{:.3f}\n'.format(self.Hillas["lengthA"]),
+                'distN\t{:.3f}\n'.format(self.Hillas["disN"]), #0.1206 -- convert from cm to degrees
+                'distS\t{:.3f}\n'.format(self.Hillas["disS"]),
+                'distA\t{:.3f}\n'.format(self.Hillas["disA"]),
+                'missN\t{:.3f}\n'.format(self.Hillas["missN"]), 
+                'missS\t{:.3f}\n'.format(self.Hillas["missS"]),
+                'missA\t{:.3f}\n'.format(self.Hillas["missA"]),
+                'azwidthN\t{:.3f}\n'.format(self.Hillas["azwidthN"]), 
+                'azwidthS\t{:.3f}\n'.format(self.Hillas["azwidthS"]), 
+                'azwidthA\t{:.3f}\n'.format(self.Hillas["azwidthA"]), 
+                'alphaN\t{:.3f}\n'.format(self.Hillas["alphaN"]), 
+                'alphaS\t{:.3f}\n'.format(self.Hillas["alphaS"]), 
+                'alphaA\t{:.3f}\n'.format(self.Hillas["alphaA"]), 
+                file=fout)
+        fout.close()
     def cclean(self, neighbours, A = 14, B = 7):
         b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
         for pixel in self.pixels:
