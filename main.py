@@ -171,7 +171,10 @@ for nportion in range(1, 1+portions_amount):
         # print("event: ", e.time, e.Nevent, file = timefile)
             
         if not (wobble): e.params(angles = True)
-        else: e.params(pointing.source_x[timeindex], pointing.source_y[timeindex], angles = True)
+        else: 
+            e.source_x = pointing.source_x[timeindex]
+            e.source_y = pointing.source_y[timeindex]
+            e.params(e.source_x, e.source_y, angles = True)
         print(
         nportion, 
         e.Nevent, 
@@ -203,10 +206,10 @@ for nportion in range(1, 1+portions_amount):
         '{:.3f}'.format(e.Hillas["alphaS"]), 
         '{:.3f}'.format(e.Hillas["alphaA"]), 
         sep="\t", file=fout)
+        e.saveevent(EXPOS)
     events_cleaned += o
     events += len(o)
-for e in events_cleaned:
-    e.saveevent(EXPOS)
+  
 
 def cut(events, save = False, mode = "S"):
     marked_events = []

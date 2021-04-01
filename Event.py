@@ -35,7 +35,7 @@ def timestamp(eventtime, date = datetime.date(2019, 11, 23)):
     return result
 
 class Event():
-    def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None):
+    def __init__(self, Nevent = 0, eventtime = "12:34:56,789.101.112", clusters = None, pixels = None, source_x = 0, source_y = 0):
         if clusters is None:
             clusters = []
         self.clusters = dict()
@@ -48,6 +48,8 @@ class Event():
         self.vmax1 = 0
         self.vmax2 = 0
         self.pixels = deepcopy(pixels)
+        self.source_x = source_x
+        self.source_y = source_y
         # self.xm = None
         # self.ym = None
         # self.x2m = None
@@ -61,6 +63,7 @@ class Event():
         return "#"+self.Nevent+'  '+self.time
     def __len__(self):
         return len(self.pixels)
+
     
     def recount(self, factors, coords):
         self.pixels = dict()
@@ -109,6 +112,13 @@ class Event():
         Returns dictionary of Hillas parameters for this event, False if size == 0
 
         '''
+        source_x, source_y = self.source_x, self.source_y
+        for pixel in self.pixels:
+            x, y, v = self.pixels[pixel]
+            if v > self.vmax1:
+                self.vmax1 = v
+            elif v > self.vmax2:
+                self.vmax2 = v
         if None in self.Hillas.values() and self.size > 0:
             self.xNm, self.yNm, self.xN2m, self.yN2m, self.xyNm = 0, 0, 0, 0, 0
             self.Con2 = (self.vmax1+self.vmax2)/self.size
@@ -328,8 +338,10 @@ class Event():
         fout = open("../"+EXPOS+ path + self.Nevent+".event", "w")
         print(self.Nevent, self.time, sep="\t", file=fout)
         print(len(self.pixels), file=fout)
+        print("Source_x\t", self.source_x, file = fout)
+        print("Source_y\t", self.source_y, file = fout)
         for pixel in self.pixels:
-            print(self.pixels[pixel][0], self.pixels[pixel][1], self.pixels[pixel][2], sep='\t', file=fout)
+            print(pixel, self.pixels[pixel][0], self.pixels[pixel][1], self.pixels[pixel][2], sep='\t', file=fout)
         if None not in self.Hillas.values():
                 print( 
                 'Size:\t', self.size, "\n",
@@ -390,3 +402,21 @@ class Event():
             elif b.pixels[pixel][2] > b.vmax2:
                 b.vmax2 = b.pixels[pixel][2]
         return b
+
+
+def readevent(filename):
+    fin = open(filename, "r")
+    Nevent, time = fin.readline().split("\t")
+    n = int(fin.readline())
+    source_x = float(fin.readline().split("\t")[1])
+    source_y = float(fin.readline().split("\t")[1])
+    pixels = dict()
+    for i in range(n):
+        pixel, x, y, v = map(float, fin.readline().split())
+        pixel = int(pixel)
+        v = int(v)
+        pixels[pixel] = (x, y, v)
+    e = Event(int(Nevent), time, clusters=None, pixels = pixels, source_x = source_x, source_y = source_y)
+    e.size = int(fin.readline().split("\t")[1])
+    fin.close()
+    return e
