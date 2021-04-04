@@ -27,7 +27,7 @@ day, month, year = int(OBSERVDATE[:2]), int(OBSERVDATE[2:4]), 2000+int(OBSERVDAT
 PEDSTYPE = "peds"
 wobble=True
 portions_amount = len(os.listdir(path="../"+EXPOS+"/outs"))
-portions_amount=2
+#portions_amount=2
 def dist(c1, c2):
     return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
 
@@ -147,7 +147,7 @@ print("nportion", "ID", "Time",
       "<yN>", "<yS>", "<yA>",
       "WidthN", "WidthS", "WidthA",
       "LengthN", "LengthS", "LengthA",
-      "DisN", "DisS", "DisA", 
+      "distN", "distS", "distA", 
       "MissN", "MissS", "MissA", 
       "AzwidthN", "AzwidthS", "AzwidthA",  
       "AlphaN", "AlphaS", "AlphaA", 
@@ -193,9 +193,9 @@ for nportion in range(1, 1+portions_amount):
         '{:.3f}'.format(e.Hillas["lengthN"]), 
         '{:.3f}'.format(e.Hillas["lengthS"]),
         '{:.3f}'.format(e.Hillas["lengthA"]),
-        '{:.3f}'.format(e.Hillas["disN"]), #0.1206 -- convert from cm to degrees
-        '{:.3f}'.format(e.Hillas["disS"]),
-        '{:.3f}'.format(e.Hillas["disA"]),
+        '{:.3f}'.format(e.Hillas["distN"]), #0.1206 -- convert from cm to degrees
+        '{:.3f}'.format(e.Hillas["distS"]),
+        '{:.3f}'.format(e.Hillas["distA"]),
         '{:.3f}'.format(e.Hillas["missN"]), 
         '{:.3f}'.format(e.Hillas["missS"]),
         '{:.3f}'.format(e.Hillas["missA"]),
@@ -224,5 +224,5 @@ def cut(events, save = False, mode = "S"):
                 if save: e.vizualize(pixel_coords=pixel_coords, save=True)
     return marked_events
 #marked = cut(events_cleaned)
-plt.hist([e.Hillas["alphaS"] for e in events_cleaned])
+# plt.hist([e.Hillas["alphaS"] for e in events_cleaned])
 fout.close()

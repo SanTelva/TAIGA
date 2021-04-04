@@ -55,7 +55,7 @@ class Event():
         # self.x2m = None
         # self.y2m = None
         # self.xym = None
-        self.Hillas = {"widthN": None, "lengthN": None, "disN": None, "missN": None, "alphaN": None}
+        self.Hillas = {"widthN": None, "lengthN": None, "distN": None, "missN": None, "alphaN": None}
         
     def __str__(self):
         return "#"+self.Nevent+'  '+self.time
@@ -92,7 +92,7 @@ class Event():
 
     
     
-    def params(self, source_x=0, source_y=0, angles = False):
+    def params(self, source_x=0, source_y=0, angles = True):
         '''
         N = norm, source_x=0, source_y=0.
         Source is just above IACT, without shift.
@@ -209,43 +209,43 @@ class Event():
             
             self.Hillas["widthN"] = ((sigmaxN+sigmayN-zN)/2)**0.5
             self.Hillas["lengthN"] = ((sigmaxN+sigmayN+zN)/2)**0.5
-            self.Hillas["disN"] = np.sqrt(self.xNm**2+self.yNm**2)
+            self.Hillas["distN"] = np.sqrt(self.xNm**2+self.yNm**2)
             self.Hillas["missN"] = np.sqrt((uN*self.xNm**2+vN*self.yNm**2)/2
                                            -(2*sigmaxyN*self.xNm*self.yNm/zN))
             self.Hillas["azwidthN"] = np.sqrt(self.xNm**2*self.yN2m
                                              -2*self.xNm*self.yNm
-                                             +self.xN2m*self.yNm**2)/self.Hillas["disN"]
+                                             +self.xN2m*self.yNm**2)/self.Hillas["distN"]
             self.Hillas["coordsN"] = (self.xNm, self.yNm)
-            self.Hillas["alphaN"] = np.degrees(np.arcsin(self.Hillas["missN"]/self.Hillas["disN"]))
+            self.Hillas["alphaN"] = np.degrees(np.arcsin(self.Hillas["missN"]/self.Hillas["distN"]))
             
             if source_x or source_y:
                 self.Hillas["widthS"] = ((sigmaxS+sigmayS-zS)/2)**0.5
                 self.Hillas["lengthS"] = ((sigmaxS+sigmayS+zS)/2)**0.5
-                self.Hillas["disS"] = np.sqrt(self.xSm**2+self.ySm**2)
+                self.Hillas["distS"] = np.sqrt(self.xSm**2+self.ySm**2)
                 self.Hillas["missS"] = np.sqrt((uS*self.xSm**2+vS*self.ySm**2)/2
                                                -(2*sigmaxyS*self.xSm*self.ySm/zS))
                 self.Hillas["azwidthS"] = np.sqrt(self.xSm**2*self.yS2m
                                                  -2*self.xSm*self.ySm
-                                                 +self.xS2m*self.ySm**2)/self.Hillas["disS"]
+                                                 +self.xS2m*self.ySm**2)/self.Hillas["distS"]
                 self.Hillas["coordsS"] = (self.xSm, self.ySm)
-                self.Hillas["alphaS"] = np.degrees(np.arcsin(self.Hillas["missS"]/self.Hillas["disS"]))
+                self.Hillas["alphaS"] = np.degrees(np.arcsin(self.Hillas["missS"]/self.Hillas["distS"]))
                 
                 self.Hillas["widthA"] = ((sigmaxA+sigmayA-zA)/2)**0.5
                 self.Hillas["lengthA"] = ((sigmaxA+sigmayA+zA)/2)**0.5
-                self.Hillas["disA"] = np.sqrt(self.xAm**2+self.yAm**2)
+                self.Hillas["distA"] = np.sqrt(self.xAm**2+self.yAm**2)
                 self.Hillas["missA"] = np.sqrt((uA*self.xAm**2+vA*self.yAm**2)/2
                                                -(2*sigmaxyA*self.xAm*self.yAm/zA))
                 self.Hillas["azwidthA"] = np.sqrt(self.xAm**2*self.yA2m
                                                  -2*self.xAm*self.yAm
-                                                 +self.xA2m*self.yAm**2)/self.Hillas["disA"]
+                                                 +self.xA2m*self.yAm**2)/self.Hillas["distA"]
                 self.Hillas["coordsA"] = (self.xAm, self.yAm)
-                self.Hillas["alphaA"] = np.degrees(np.arcsin(self.Hillas["missA"]/self.Hillas["disA"]))
+                self.Hillas["alphaA"] = np.degrees(np.arcsin(self.Hillas["missA"]/self.Hillas["distA"]))
             else:
                 self.xSm = self.xAm = self.xNm
                 self.ySm = self.yAm = self.yNm
                 self.Hillas["widthS"] = self.Hillas["widthA"] = self.Hillas["widthN"]
                 self.Hillas["lengthS"] = self.Hillas["lengthA"] = self.Hillas["lengthN"]
-                self.Hillas["disS"] = self.Hillas["disA"] = self.Hillas["disN"]
+                self.Hillas["distS"] = self.Hillas["distA"] = self.Hillas["distN"]
                 self.Hillas["missS"] = self.Hillas["missA"] = self.Hillas["missN"]
                 self.Hillas["azwidthS"] = self.Hillas["azwidthA"] = self.Hillas["azwidthN"]
                 self.Hillas["coordsS"] = self.Hillas["coordsA"] = self.Hillas["coordsN"]
@@ -254,21 +254,21 @@ class Event():
             if angles:
                 self.Hillas["widthN"] *= 0.1206
                 self.Hillas["lengthN"] *= 0.1206
-                self.Hillas["disN"]*= 0.1206
+                self.Hillas["distN"]*= 0.1206
                 self.Hillas["missN"] *= 0.1206
                 self.Hillas["azwidthN"] *= 0.1206
                 self.Hillas["coordsN"] = (0.1206 * self.xNm, 0.1206*self.yNm)
                 
                 self.Hillas["widthS"] *= 0.1206
                 self.Hillas["lengthS"] *= 0.1206
-                self.Hillas["disS"] *= 0.1206
+                self.Hillas["distS"] *= 0.1206
                 self.Hillas["missS"] *= 0.1206
                 self.Hillas["azwidthS"] *= 0.1206
                 self.Hillas["coordsS"] = (0.1206*self.xSm, 0.1206*self.ySm)
                 
                 self.Hillas["widthA"] *= 0.1206
                 self.Hillas["lengthA"] *= 0.1206
-                self.Hillas["disA"] *= 0.1206
+                self.Hillas["distA"] *= 0.1206
                 self.Hillas["missA"] *= 0.1206
                 self.Hillas["azwidthA"] *= 0.1206
                 self.Hillas["coordsA"] = (0.1206*self.xAm, 0.1206*self.yAm)
@@ -358,9 +358,9 @@ class Event():
                 'lengthN\t{:.3f}\n'.format(self.Hillas["lengthN"]), 
                 'lengthS\t{:.3f}\n'.format(self.Hillas["lengthS"]),
                 'lengthA\t{:.3f}\n'.format(self.Hillas["lengthA"]),
-                'distN\t{:.3f}\n'.format(self.Hillas["disN"]), #0.1206 -- convert from cm to degrees
-                'distS\t{:.3f}\n'.format(self.Hillas["disS"]),
-                'distA\t{:.3f}\n'.format(self.Hillas["disA"]),
+                'distN\t{:.3f}\n'.format(self.Hillas["distN"]), #0.1206 -- convert from cm to degrees
+                'distS\t{:.3f}\n'.format(self.Hillas["distS"]),
+                'distA\t{:.3f}\n'.format(self.Hillas["distA"]),
                 'missN\t{:.3f}\n'.format(self.Hillas["missN"]), 
                 'missS\t{:.3f}\n'.format(self.Hillas["missS"]),
                 'missA\t{:.3f}\n'.format(self.Hillas["missA"]),
@@ -416,7 +416,21 @@ def readevent(filename):
         pixel = int(pixel)
         v = int(v)
         pixels[pixel] = (x, y, v)
+        
     e = Event(int(Nevent), time, clusters=None, pixels = pixels, source_x = source_x, source_y = source_y)
     e.size = int(fin.readline().split("\t")[1])
+    e.Con2 = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsN"] = [0] * 2
+    e.Hillas["coordsS"] = [0] * 2
+    e.Hillas["coordsA"] = [0] * 2
+    e.Hillas["coordsN"][0] = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsS"][0] = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsA"][0] = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsN"][1] = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsS"][1] = float(fin.readline().split("\t")[1])
+    e.Hillas["coordsA"][1] = float(fin.readline().split("\t")[1])
+    for i in range(18):
+        key, param = fin.readline().split("\t")
+        e.Hillas[key.strip()]=float(param)
     fin.close()
     return e
