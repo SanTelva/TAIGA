@@ -121,7 +121,7 @@ class Event():
                 self.vmax2 = v
         if None in self.Hillas.values() and self.size > 0:
             self.xNm, self.yNm, self.xN2m, self.yN2m, self.xyNm = 0, 0, 0, 0, 0
-            self.Con2 = (self.vmax1+self.vmax2)/self.size
+            self.con2 = (self.vmax1+self.vmax2)/self.size
             self.xSm, self.ySm, self.xS2m, self.yS2m, self.xySm = 0, 0, 0, 0, 0
             self.xAm, self.yAm, self.xA2m, self.yA2m, self.xyAm = 0, 0, 0, 0, 0
             xSsum, xS2sum, ySsum, yS2sum, xySsum = 0, 0, 0, 0, 0
@@ -206,8 +206,9 @@ class Event():
             # self.Hillas["dis"] = np.sqrt(self.xm**2+self.ym**2)
             # self.Hillas["miss"] = abs(b/np.sqrt(1+a*a))
             self.Hillas["size"] = self.size
-            
-            self.Hillas["widthN"] = ((sigmaxN+sigmayN-zN)/2)**0.5
+            if sigmaxN+sigmayN < zN:
+                return False
+            self.Hillas["widthN"] = np.sqrt(((sigmaxN+sigmayN-zN)/2))
             self.Hillas["lengthN"] = ((sigmaxN+sigmayN+zN)/2)**0.5
             self.Hillas["distN"] = np.sqrt(self.xNm**2+self.yNm**2)
             self.Hillas["missN"] = np.sqrt((uN*self.xNm**2+vN*self.yNm**2)/2
@@ -220,6 +221,7 @@ class Event():
             
             if source_x or source_y:
                 self.Hillas["widthS"] = ((sigmaxS+sigmayS-zS)/2)**0.5
+                self.Hillas["widthA"] = ((sigmaxA+sigmayA-zA)/2)**0.5
                 self.Hillas["lengthS"] = ((sigmaxS+sigmayS+zS)/2)**0.5
                 self.Hillas["distS"] = np.sqrt(self.xSm**2+self.ySm**2)
                 self.Hillas["missS"] = np.sqrt((uS*self.xSm**2+vS*self.ySm**2)/2
@@ -230,7 +232,7 @@ class Event():
                 self.Hillas["coordsS"] = (self.xSm, self.ySm)
                 self.Hillas["alphaS"] = np.degrees(np.arcsin(self.Hillas["missS"]/self.Hillas["distS"]))
                 
-                self.Hillas["widthA"] = ((sigmaxA+sigmayA-zA)/2)**0.5
+                
                 self.Hillas["lengthA"] = ((sigmaxA+sigmayA+zA)/2)**0.5
                 self.Hillas["distA"] = np.sqrt(self.xAm**2+self.yAm**2)
                 self.Hillas["missA"] = np.sqrt((uA*self.xAm**2+vA*self.yAm**2)/2
@@ -345,7 +347,7 @@ class Event():
         if None not in self.Hillas.values():
                 print( 
                 'Size:\t', self.size, "\n",
-                'Con2:\t{:.3f}\n'.format(self.Con2),
+                'con2:\t{:.3f}\n'.format(self.con2),
                 '<xN>\t{:.3f}\n'.format(self.Hillas["coordsN"][0]),
                 '<xS>\t{:.3f}\n'.format(self.Hillas["coordsS"][0]),
                 '<xA>\t{:.3f}\n'.format(self.Hillas["coordsA"][0]),
@@ -419,18 +421,27 @@ def readevent(filename):
         
     e = Event(int(Nevent), time, clusters=None, pixels = pixels, source_x = source_x, source_y = source_y)
     e.size = int(fin.readline().split("\t")[1])
-    e.Con2 = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsN"] = [0] * 2
-    e.Hillas["coordsS"] = [0] * 2
-    e.Hillas["coordsA"] = [0] * 2
-    e.Hillas["coordsN"][0] = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsS"][0] = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsA"][0] = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsN"][1] = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsS"][1] = float(fin.readline().split("\t")[1])
-    e.Hillas["coordsA"][1] = float(fin.readline().split("\t")[1])
-    for i in range(18):
-        key, param = fin.readline().split("\t")
-        e.Hillas[key.strip()]=float(param)
+    e.con2 = float(fin.readline().split("\t")[1])
+    try:
+        e.Hillas["coordsN"] = [0] * 2
+        e.Hillas["coordsS"] = [0] * 2
+        e.Hillas["coordsA"] = [0] * 2
+        e.Hillas["coordsN"][0] = float(fin.readline().split("\t")[1])
+        e.Hillas["coordsS"][0] = float(fin.readline().split("\t")[1])
+        e.Hillas["coordsA"][0] = float(fin.readline().split("\t")[1])
+        e.Hillas["coordsN"][1] = float(fin.readline().split("\t")[1])
+        e.Hillas["coordsS"][1] = float(fin.readline().split("\t")[1])
+        e.Hillas["coordsA"][1] = float(fin.readline().split("\t")[1])
+    
+        for i in range(18):
+            key, param = fin.readline().split("\t")
+            e.Hillas[key.strip()]=float(param)
+            e.Hillas["widthN"] = None
+            e.params()
+    except ValueError:
+        print("Problems with", filename)
+        fin.close()
+        raise ValueError
+        
     fin.close()
     return e

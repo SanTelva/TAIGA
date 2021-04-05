@@ -142,7 +142,7 @@ pointing.index = np.arange(len(pointing))
 
 #foutEvents = open("events.txt", "w")
 print("nportion", "ID", "Time", 
-      "Size", "Con2",
+      "Size", "сon2",
       "<xN>", "<xS>", "<xA>", 
       "<yN>", "<yS>", "<yA>",
       "WidthN", "WidthS", "WidthA",
@@ -175,12 +175,12 @@ for nportion in range(1, 1+portions_amount):
             e.source_x = pointing.source_x[timeindex]
             e.source_y = pointing.source_y[timeindex]
             e.params(e.source_x, e.source_y, angles = True)
-        print(
+        if not(None in e.Hillas.values()): print(
         nportion, 
         e.Nevent, 
         e.time.replace(",", ";"), 
         e.size,
-        '{:.3f}'.format(e.Con2),
+        '{:.3f}'.format(e.con2),
         '{:.3f}'.format(e.Hillas["coordsN"][0]),
         '{:.3f}'.format(e.Hillas["coordsS"][0]),
         '{:.3f}'.format(e.Hillas["coordsA"][0]),
@@ -215,7 +215,7 @@ def cut(events, save = False, mode = "S"):
     marked_events = []
     for e in events:
         if (e.size > 120 
-            and e.Con2 > 0.54
+            and e.сon2 > 0.54
             and dist(e.Hillas["coords"+mode], (0, 0)) < 2.1
             and e.Hillas["width"+mode] < 0.076 * np.log10(e.size) - 0.047
             and e.Hillas["length"+mode] < 0.31
