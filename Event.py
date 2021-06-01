@@ -42,7 +42,7 @@ class Event():
         for cluster in clusters:
             self.clusters[cluster[0]] = cluster[1]
         self.Nclusters = len(clusters)
-        self.Nevent = '{:06}'.format(Nevent)
+        self.Nevent = '{:07}'.format(Nevent)
         self.time = eventtime
         self.size = 0
         self.vmax1 = 0
@@ -336,8 +336,9 @@ class Event():
     #         except RuntimeWarning:
     #             pass
     #     return b
-    def saveevent(self, EXPOS, path="/events/"):
-        fout = open("../"+EXPOS+ path + self.Nevent+".event", "w")
+    def saveevent(self, IACT, EXPOS, path="events"):
+        fout = open("/".join(["..", IACT, EXPOS, path, self.Nevent+".event"]), "w")
+            # "../"+EXPOS+ path + self.Nevent+".event", "w")
         print(self.Nevent, self.time, sep="\t", file=fout)
         print(len(self.pixels), file=fout)
         print("Source_x\t", self.source_x, file = fout)
@@ -373,6 +374,8 @@ class Event():
                 'alphaS\t{:.3f}\n'.format(self.Hillas["alphaS"]), 
                 'alphaA\t{:.3f}\n'.format(self.Hillas["alphaA"]), 
                 file=fout)
+        else:
+            self.params()
         fout.close()
     def cclean(self, neighbours, A = 14, B = 7):
         b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
@@ -409,7 +412,10 @@ class Event():
 def readevent(filename):
     fin = open(filename, "r")
     Nevent, time = fin.readline().split("\t")
-    n = int(fin.readline())
+    try:
+        n = int(fin.readline())
+    except ValueError:
+        n = int(fin.readline())
     source_x = float(fin.readline().split("\t")[1])
     source_y = float(fin.readline().split("\t")[1])
     pixels = dict()
@@ -420,8 +426,12 @@ def readevent(filename):
         pixels[pixel] = (x, y, v)
         
     e = Event(int(Nevent), time, clusters=None, pixels = pixels, source_x = source_x, source_y = source_y)
-    e.size = int(fin.readline().split("\t")[1])
-    e.con2 = float(fin.readline().split("\t")[1])
+    try:
+        e.size = int(fin.readline().split("\t")[1])
+        e.con2 = float(fin.readline().split("\t")[1])
+    except IndexError:
+        fin.close()
+        return
     try:
         e.Hillas["coordsN"] = [0] * 2
         e.Hillas["coordsS"] = [0] * 2

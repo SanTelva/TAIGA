@@ -17,7 +17,8 @@ def sew_tracking(template="pointing_data_2020"):
 
 Nportion = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
-EXPOS = "160920.00"
+EXPOS = "171020.00"
+IACT = "IACT01"
 if len(EXPOS.split('.')) > 1:
     OBSERVDATE, NRUN = EXPOS.split(".")
 else:
@@ -26,14 +27,14 @@ NRUN = int(NRUN)
 day, month, year = int(OBSERVDATE[:2]), int(OBSERVDATE[2:4]), 2000+int(OBSERVDATE[4:6]) 
 PEDSTYPE = "peds"
 wobble=True
-portions_amount = len(os.listdir(path="../"+EXPOS+"/outs"))
+portions_amount = len(os.listdir(path="../"+IACT+"/"+EXPOS+"/outs"))
 #portions_amount=2
 def dist(c1, c2):
     return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
 
 
 def Peds(Nportion):
-    pathped = "/".join(["..", EXPOS, PEDSTYPE, EXPOS[:-2]+"ped_"])
+    pathped = "/".join(["..", IACT, EXPOS, PEDSTYPE, EXPOS[:-2]+"ped_"])
     #pathped = "../231119.01/peds.mediana/231119.ped_"
     peds = [[0 for i in range(64)] for j in range(24)] #здесь хранятся данные по пьедесталам 
                            #каждого канала по данному рану
@@ -49,7 +50,7 @@ def Peds(Nportion):
 peds = Peds(Nportion)
 
 # "../231119.01/factors_051019.07fixed.txt"
-factor = open("/".join(["..", EXPOS, "factors_051019.07fixed.txt"]), "r")
+factor = open("/".join(["..", IACT, "factors_051019.07fixed.txt"]), "r")
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
 line = factor.readline()
 for i in range(9):
@@ -65,7 +66,7 @@ while True:
 factor.close()
 
 #попытаемся пересчитать в систему координат 
-coord = open("/".join(["..", EXPOS, "xy_turn_2019j.txt"]), "r")
+coord = open("/".join(["..", IACT, "xy_turn_2019j.txt"]), "r")
 pixel_coords = dict() #сопоставление ID ФЭУ и его координат
 cluster_coords = [[[None, None, None] for i in range(64)] for j in range(24)]
 while True:  
@@ -92,7 +93,7 @@ for i in range(640):
                 neighbours[i].append(j)
                 
 def outs(Nportion, peds = peds):
-    pathout = "/".join(["..", EXPOS, "outs", EXPOS[:-2]+"out_"])
+    pathout = "/".join(["..", IACT, EXPOS, "outs", EXPOS[:-2]+"out_"])
     # pathout = "../231119.01/outs/231119.out_"
 
     fin=open(pathout+Nportion, "r")
@@ -136,7 +137,7 @@ def outs(Nportion, peds = peds):
 events_cleaned = []
 events = 0
 timefile = open("Times.txt", "w")
-fout = open("Params"+EXPOS+"W"*wobble+".csv", "w")
+fout = open("Params"+IACT+EXPOS+"W"*wobble+".csv", "w")
 pointing = sew_tracking("pointing_data_"+"-".join([str(year),'{:02d}'.format(month), '{:02d}'.format(day)]))
 pointing.index = np.arange(len(pointing))
 
@@ -175,38 +176,39 @@ for nportion in range(1, 1+portions_amount):
             e.source_x = pointing.source_x[timeindex]
             e.source_y = pointing.source_y[timeindex]
             e.params(e.source_x, e.source_y, angles = True)
-        if not(None in e.Hillas.values()): print(
-        nportion, 
-        e.Nevent, 
-        e.time.replace(",", ";"), 
-        e.size,
-        '{:.3f}'.format(e.con2),
-        '{:.3f}'.format(e.Hillas["coordsN"][0]),
-        '{:.3f}'.format(e.Hillas["coordsS"][0]),
-        '{:.3f}'.format(e.Hillas["coordsA"][0]),
-        '{:.3f}'.format(e.Hillas["coordsN"][1]),
-        '{:.3f}'.format(e.Hillas["coordsS"][1]),
-        '{:.3f}'.format(e.Hillas["coordsA"][1]),
-        '{:.3f}'.format(e.Hillas["widthN"]),
-        '{:.3f}'.format(e.Hillas["widthS"]),
-        '{:.3f}'.format(e.Hillas["widthA"]),
-        '{:.3f}'.format(e.Hillas["lengthN"]), 
-        '{:.3f}'.format(e.Hillas["lengthS"]),
-        '{:.3f}'.format(e.Hillas["lengthA"]),
-        '{:.3f}'.format(e.Hillas["distN"]), #0.1206 -- convert from cm to degrees
-        '{:.3f}'.format(e.Hillas["distS"]),
-        '{:.3f}'.format(e.Hillas["distA"]),
-        '{:.3f}'.format(e.Hillas["missN"]), 
-        '{:.3f}'.format(e.Hillas["missS"]),
-        '{:.3f}'.format(e.Hillas["missA"]),
-        '{:.3f}'.format(e.Hillas["azwidthN"]), 
-        '{:.3f}'.format(e.Hillas["azwidthS"]), 
-        '{:.3f}'.format(e.Hillas["azwidthA"]), 
-        '{:.3f}'.format(e.Hillas["alphaN"]), 
-        '{:.3f}'.format(e.Hillas["alphaS"]), 
-        '{:.3f}'.format(e.Hillas["alphaA"]), 
+        if not(None in e.Hillas.values()):
+            print(
+                nportion, 
+                e.Nevent, 
+                e.time.replace(",", ";"), 
+                e.size,
+                '{:.3f}'.format(e.con2),
+                '{:.3f}'.format(e.Hillas["coordsN"][0]),
+                '{:.3f}'.format(e.Hillas["coordsS"][0]),
+                '{:.3f}'.format(e.Hillas["coordsA"][0]),
+                '{:.3f}'.format(e.Hillas["coordsN"][1]),
+                '{:.3f}'.format(e.Hillas["coordsS"][1]),
+                '{:.3f}'.format(e.Hillas["coordsA"][1]),
+                '{:.3f}'.format(e.Hillas["widthN"]),
+                '{:.3f}'.format(e.Hillas["widthS"]),
+                '{:.3f}'.format(e.Hillas["widthA"]),
+                '{:.3f}'.format(e.Hillas["lengthN"]), 
+                '{:.3f}'.format(e.Hillas["lengthS"]),
+                '{:.3f}'.format(e.Hillas["lengthA"]),
+                '{:.3f}'.format(e.Hillas["distN"]), #0.1206 -- convert from cm to degrees
+                '{:.3f}'.format(e.Hillas["distS"]),
+                '{:.3f}'.format(e.Hillas["distA"]),
+                '{:.3f}'.format(e.Hillas["missN"]), 
+                '{:.3f}'.format(e.Hillas["missS"]),
+                '{:.3f}'.format(e.Hillas["missA"]),
+                '{:.3f}'.format(e.Hillas["azwidthN"]), 
+                '{:.3f}'.format(e.Hillas["azwidthS"]), 
+                '{:.3f}'.format(e.Hillas["azwidthA"]), 
+                '{:.3f}'.format(e.Hillas["alphaN"]), 
+                '{:.3f}'.format(e.Hillas["alphaS"]), 
+                '{:.3f}'.format(e.Hillas["alphaA"]), 
         sep="\t", file=fout)
-        e.saveevent(EXPOS)
+            e.saveevent(IACT, EXPOS)
     events_cleaned += o
     events += len(o)
   
