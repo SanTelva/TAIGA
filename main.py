@@ -3,8 +3,8 @@ import pandas as pd
 from Event import *
 import os
 
-def sew_tracking(template="pointing_data_2020"):
-    files = [('./trackings/'+f) for f in os.listdir('./trackings') if f.startswith(template)]
+def sew_tracking(IACT = "IACT01", template="pointing_data_2020"):
+    files = [('../'+IACT+'/trackings/'+f) for f in os.listdir('../'+IACT+'/trackings/') if f.startswith(template)]
     print(files)
     df = pd.read_csv(files[0])
     df = df[["time", "hh", "mm", "ss", "source_x", "source_y", "tracking", "is_good"]][df["is_good"]==1]
@@ -17,8 +17,14 @@ def sew_tracking(template="pointing_data_2020"):
 
 Nportion = '{:03}'.format(10)
 COLORS = np.array(['r', 'y', 'g', 'c', 'b', 'm', 'k'])
-EXPOS = "171020.00"
-IACT = "IACT01"
+EXPOS = "160920.03"
+IACT = "IACT02"
+if IACT == "IACT02":
+    xyfile = "xy_iact02_2020jul.txt"
+    factor_file = "factors_iact2_310120.led.txt"
+elif IACT == "IACT01":
+    xyfile = "xy_turn_2019j.txt"
+    factor_file = "factors_051019.07fixed.txt"
 if len(EXPOS.split('.')) > 1:
     OBSERVDATE, NRUN = EXPOS.split(".")
 else:
@@ -28,6 +34,8 @@ day, month, year = int(OBSERVDATE[:2]), int(OBSERVDATE[2:4]), 2000+int(OBSERVDAT
 PEDSTYPE = "peds"
 wobble=True
 portions_amount = len(os.listdir(path="../"+IACT+"/"+EXPOS+"/outs"))
+if not "events" in os.listdir("../"+IACT+"/"+EXPOS):
+    os.mkdir("../"+IACT+"/"+EXPOS+"/"+"events")
 #portions_amount=2
 def dist(c1, c2):
     return np.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
@@ -50,23 +58,34 @@ def Peds(Nportion):
 peds = Peds(Nportion)
 
 # "../231119.01/factors_051019.07fixed.txt"
-factor = open("/".join(["..", IACT, "factors_051019.07fixed.txt"]), "r")
+factor = open("/".join(["..", IACT, factor_file]), "r")
 cluster_factors = [[1 for j in range(64)] for i in range(24)]
+# line = factor.readline()
+# for i in range(9):
+#     factor.readline()
+# while True:  
+#     line = factor.readline().split()
+#     #print(line)
+#     if line == []:
+#         break
+#     if line[4] == "NaN" or line[5] == "NaN": cluster_factors[int(line[0])-1][int(line[1])] = None
+#     else: cluster_factors[int(line[0])-1][int(line[1])] = float(line[4]) * float(line[5])
+#     #количество d.c., соответствующих одному фотоэлектрону
+# factor.close()
 line = factor.readline()
-for i in range(9):
-    factor.readline()
 while True:  
     line = factor.readline().split()
     #print(line)
     if line == []:
         break
-    if line[4] == "NaN" or line[5] == "NaN": cluster_factors[int(line[0])-1][int(line[1])] = None
-    else: cluster_factors[int(line[0])-1][int(line[1])] = float(line[4]) * float(line[5])
+    cl, ch, pe, sens = line
+    if pe == "NaN" or sens == "NaN": cluster_factors[int(cl)-1][int(ch)] = None
+    else: cluster_factors[int(cl)-1][int(ch)] = float(pe) * float(sens)
     #количество d.c., соответствующих одному фотоэлектрону
 factor.close()
 
 #попытаемся пересчитать в систему координат 
-coord = open("/".join(["..", IACT, "xy_turn_2019j.txt"]), "r")
+coord = open("/".join(["..", IACT, xyfile]), "r")
 pixel_coords = dict() #сопоставление ID ФЭУ и его координат
 cluster_coords = [[[None, None, None] for i in range(64)] for j in range(24)]
 while True:  
@@ -138,7 +157,7 @@ events_cleaned = []
 events = 0
 timefile = open("Times.txt", "w")
 fout = open("Params"+IACT+EXPOS+"W"*wobble+".csv", "w")
-pointing = sew_tracking("pointing_data_"+"-".join([str(year),'{:02d}'.format(month), '{:02d}'.format(day)]))
+pointing = sew_tracking(IACT, "pointing_data_"+"-".join([str(year),'{:02d}'.format(month), '{:02d}'.format(day)]))
 pointing.index = np.arange(len(pointing))
 
 #foutEvents = open("events.txt", "w")
@@ -156,7 +175,7 @@ print("nportion", "ID", "Time",
 for nportion in range(1, 1+portions_amount):
     #events_cleaned += outs('{:03}'.format(nportion), peds = Peds(nportion))
     Nportion = '{:03}'.format(nportion)
-    print(Nportion)
+    print(Nportion, "/", '{:03}'.format(portions_amount))
     peds = Peds(Nportion)
     o= outs(Nportion, peds)
     timeindex = 0
@@ -216,15 +235,23 @@ for nportion in range(1, 1+portions_amount):
 def cut(events, save = False, mode = "S"):
     marked_events = []
     for e in events:
-        if (e.size > 120 
-            and e.сon2 > 0.54
-            and dist(e.Hillas["coords"+mode], (0, 0)) < 2.1
-            and e.Hillas["width"+mode] < 0.076 * np.log10(e.size) - 0.047
-            and e.Hillas["length"+mode] < 0.31
-            and 0.36 < e.Hillas["dis"+mode] < 1.53):
-                marked_events.append(e)
-                if save: e.vizualize(pixel_coords=pixel_coords, save=True)
+        try:
+            if (e.size > 120 
+                and e.con2 > 0.54
+                and dist(e.Hillas["coords"+mode], (0, 0)) < 2.1
+                and e.Hillas["width"+mode] < 0.076 * np.log10(e.size) - 0.047
+                and e.Hillas["length"+mode] < 0.31
+                and 0.36 < e.Hillas["dist"+mode] < 1.53):
+                    marked_events.append(e)
+                    if save: e.vizualize(pixel_coords=pixel_coords, save=True)
+        except KeyError:
+            print(e)
     return marked_events
-#marked = cut(events_cleaned)
+marked = cut(events_cleaned)
+# if not re.search("\d*", EXPOS).group(0)  in os.listdir("../DFTA"):
+#     os.mkdir("../DFTA"+re.search("\d*", EXPOS).group(0))
+#     for e in marked:
+#         e.saveevent("", "", "DFTA/"+re.search("\d*", EXPOS).group(0))
+    
 # plt.hist([e.Hillas["alphaS"] for e in events_cleaned])
 fout.close()
