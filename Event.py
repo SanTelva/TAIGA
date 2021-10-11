@@ -50,6 +50,7 @@ class Event():
         self.pixels = deepcopy(pixels)
         self.source_x = source_x
         self.source_y = source_y
+        self.zenith = 0
         # self.xm = None
         # self.ym = None
         # self.x2m = None
@@ -303,39 +304,43 @@ class Event():
             plt.savefig("results/pics/"+self.Nevent+".png", dpi = 200)
             plt.close(fig)
     
-    # def clean(self, A = 14, B = 7):
-    #     b = Event(int(self.Nevent), self.time, clusters=[], pixels=self.pixels)
-    #     for pixel in self.pixels:
-    #         if self.pixels[pixel][2] < B:
-    #             b.pixels.pop(pixel)
-    #         else:
-    #             n = False
-    #             if self.pixels[pixel][2] < A:
-    #                  for pixel1 in self.pixels:
-    #                      if pixel1 not in b.pixels or pixel == pixel1: pass
-    #                      elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= A:
-    #                          n = True
-    #                          break
-    #                  if not n: b.pixels.pop(pixel)
-    #             else:
-    #                 for pixel1 in self.pixels:
-    #                     if pixel1 not in b.pixels or pixel == pixel1: pass #если пиксель уже прогнали
-    #                     elif dist(self.pixels[pixel], self.pixels[pixel1]) < 3.1 and self.pixels[pixel1][2] >= B:
-    #                         n = True
-    #                         break
-    #                 if not n: b.pixels.pop(pixel)
-    #     b.size = 0
-    #     b.vmax1 = 0
-    #     for pixel in b.pixels:
-    #         b.size += b.pixels[pixel][2]
-    #         if b.pixels[pixel][2] > b.vmax1:
-    #             b.vmax1 = b.pixels[pixel][2]
-    #     if len(b.pixels) >= 4:
-    #         try:
-    #              b.params()
-    #         except RuntimeWarning:
-    #             pass
-    #     return b
+    def clean(self, neighbours, A = 14, B = 7):
+        b = Event(int(self.Nevent), self.time, clusters=[], pixels=deepcopy(self.pixels))
+        for pixel in self.pixels:
+            if self.pixels[pixel][2] >= A:
+                # print(self.pixels[pixel])
+                n = False
+                for pixel1 in neighbours[pixel]:
+                    if (pixel1 in self.pixels) and (self.pixels[pixel1][2] >= B):
+                        n = True
+                        break
+                else:
+                    b.pixels.pop(pixel)
+                    # print(self.pixels[pixel])
+            elif self.pixels[pixel][2] >= B:
+                n = False
+                for pixel1 in neighbours[pixel]:
+                    if (pixel1 in self.pixels) and (self.pixels[pixel1][2] >= A):
+                        n = True
+                        break
+                else:
+                    b.pixels.pop(pixel)
+                
+            else:
+                b.pixels.pop(pixel)
+            
+        b.size = 0
+        b.vmax1 = 0
+        b.vmax2 = 0
+        for pixel in b.pixels:
+            b.size += b.pixels[pixel][2]
+            if b.pixels[pixel][2] > b.vmax1:
+                b.vmax1 = b.pixels[pixel][2]
+            elif b.pixels[pixel][2] > b.vmax2:
+                b.vmax2 = b.pixels[pixel][2]
+        return b
+    
+    
     def saveevent(self, IACT, EXPOS, path="events"):
         fout = open("/".join(["..", IACT, EXPOS, path, self.Nevent+".event"]), "w")
             # "../"+EXPOS+ path + self.Nevent+".event", "w")
@@ -349,6 +354,7 @@ class Event():
                 print( 
                 'Size:\t', self.size, "\n",
                 'con2:\t{:.3f}\n'.format(self.con2),
+                'zenith:\t{:.3f}\n'.format(self.zenith),
                 '<xN>\t{:.3f}\n'.format(self.Hillas["coordsN"][0]),
                 '<xS>\t{:.3f}\n'.format(self.Hillas["coordsS"][0]),
                 '<xA>\t{:.3f}\n'.format(self.Hillas["coordsA"][0]),
